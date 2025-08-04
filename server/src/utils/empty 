@@ -1,0 +1,28 @@
+frontend/
+├── src/
+│   ├── api/
+│   │   ├── axios.js
+│   │   ├── userApi.js
+│   │   ├── houseApi.js
+│   │   ├── expenseApi.js
+│   ├── components/
+│   │   ├── Navbar.jsx
+│   │   ├── ProtectedRoute.jsx
+│   │   ├── ExpenseForm.jsx
+│   │   ├── ExpenseList.jsx
+│   │   ├── BalanceSheet.jsx
+│   │   ├── MonthlyChart.jsx
+│   │   ├── ReceiptUpload.jsx
+│   ├── pages/
+│   │   ├── Login.jsx
+│   │   ├── Register.jsx
+│   │   ├── Dashboard.jsx
+│   │   ├── House.jsx
+│   │   ├── Expenses.jsx
+│   │   ├── Members.jsx
+│   ├── context/
+│   │   ├── AuthContext.jsx
+│   ├── App.jsx
+│   ├── index.js
+│   ├── styles.css
+├── package.json

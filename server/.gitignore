@@ -1,0 +1,31 @@
+PORT=YOUR_PORT_HERE
+# Example: PORT=3000
+
+# MongoDB connection
+MONGO_URI=YOUR_MONGO_URI_HERE
+# Example: MONGO_URI=mongodb://localhost:27017/mydatabase
+# JWT Tokens
+ACCESS_TOKEN_SECRET=YOUR_ACCESS_TOKEN_SECRET_HERE
+ACCESS_TOKEN_EXPIRY=1d
+REFRESH_TOKEN_SECRET=YOUR_REFRESH_TOKEN_SECRET_HERE 
+REFRESH_TOKEN_EXPIRY=10d
+
+# Cloudinary (Required for Image Upload)
+CLOUD_NAME=YOUR_CLOUD_NAME_HERE
+CLOUD_KEY=YOUR_CLOUD_KEY_HERE
+CLOUD_SECRET=YOUR_CLOUD_SECRET_HERE 
+
+node_modules/
+npm-debug.log
+.env
+.DS_Store
+*.log
+*.env.local
+*.env.development.local
+*.env.test.local
+*.env.production.local
+coverage/
+dist/
+build/
+.vscode/
+.idea/          
