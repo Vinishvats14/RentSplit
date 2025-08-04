@@ -1,6 +1,6 @@
 🏠 RentSplit – Rent & Utility Split App
 
-RentSplit is a full-stack MERN application designed to help roommates split rent and utilities easily.  
+RentSplit is a full-stack MERN application designed to help roommates split rent and utilities easily. Those who faces difficulties in distributing the money among the roommates then it's a great web app for the users you will have a monthly chart according to the expenses you spend . And MOREOVER you can add different houses for differnt houses .SO it is very good if you want expense management for a Flat or Pg .
 It supports expense receipts, monthly spending charts, and custom split ratios (50-30-20).  
 
 🚀 Features
@@ -24,13 +24,13 @@ It supports expense receipts, monthly spending charts, and custom split ratios (
 ![Dashboard Screenshot](./client/src/screenshots/dashboard.png)
 
 ### 2️⃣ Add Expense Page
-![Expense Screenshot](./client/src/screenshots/add-expense.png)
+![Expense Screenshot](./client/src/screenshots/addExpense.png)
 
-### 3️⃣ Monthly Split Chart
-![Chart Screenshot](./client/src/screenshots/monthly-chart.png)
+### 3️⃣ ALL Expnese Page
+![Chart Screenshot](./client/src/screenshots/allExpense.png)
 
-### 4️⃣ Receipt Upload
-![Receipt Screenshot](./client/src/screenshots/receipt-upload.png)
+### 4️⃣ Create Different Houses For Many Users
+![Receipt Screenshot](./client/src/screenshots/createHouse.png)
 
 
 🔧 Setup Instructions
