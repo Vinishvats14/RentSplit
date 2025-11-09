@@ -8,7 +8,7 @@ import houseRoutes from './routes/house.routes.js';
 import expenseRoutes from './routes/expense.routes.js';
 import uploadRoutes from './routes/upload.routes.js';
 import paymentRoutes from './routes/payment.routes.js';
-
+import session from 'express-session';
 
 dotenv.config();
 
@@ -24,18 +24,18 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: process.env.NODE_ENV === "production", // true for HTTPS
-      httpOnly: true,
-      sameSite: "none", // important for cross-site requests
-    },
-  })
-);
+
+app.use(session({
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === "production",
+    httpOnly: true,
+    sameSite: "none",
+  },
+}));
+
 
 
 app.use((req, res, next) => {
