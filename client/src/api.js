@@ -42,8 +42,8 @@ export const updateHouse = async (id, data) => {
   const res = await axios.put(`${API_BASE}/houses/${id}`, data);
   return res.data;
 };
-export const joinHouse = async (id) => {
-  const res = await axios.post(`${API_BASE}/houses/${id}/join`);
+export const joinHouse = async (inviteCode) => {
+  const res = await axios.post(`${API_BASE}/houses/join`, { inviteCode });
   return res.data;
 };
 export const leaveHouse = async (id) => {
@@ -70,10 +70,6 @@ export const updateExpense = async (id, data) => {
 };
 export const deleteExpense = async (id) => {
   const res = await axios.delete(`${API_BASE}/expenses/${id}`);
-  return res.data;
-};
-export const settleExpense = async (id) => {
-  const res = await axios.put(`${API_BASE}/expenses/${id}/settle`);
   return res.data;
 };
 export const getRecentExpenses = async (houseId) => {
@@ -106,5 +102,24 @@ export const getRootAPI = async () => {
 };
 export const getHealthCheck = async () => {
   const res = await axios.get(`${API_BASE}/health`);
+  return res.data;
+};
+
+
+// ✅ Create Razorpay Order
+export const createOrder = async (data) => {
+  const res = await axios.post(`${API_BASE}/payment/create-order`, data);
+  return res.data;
+};
+
+// ✅ Verify payment
+export const verifyPayment = async (data) => {
+  const res = await axios.post(`${API_BASE}/payment/verify`, data);
+  return res.data;
+};
+
+// ✅ Settle expense
+export const settleExpense = async (id) => {
+  const res = await axios.put(`${API_BASE}/expenses/${id}/settle`);
   return res.data;
 };

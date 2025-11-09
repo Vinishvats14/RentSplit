@@ -48,36 +48,49 @@ const ExpenseDetails = () => {
   if (loading) return <Loader />;
 
   if (!expense) {
-    return <p className="text-center text-gray-500 mt-10">❌ Expense not found</p>;
+    return (
+      <p className="text-center text-gray-500 mt-10">❌ Expense not found</p>
+    );
   }
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
       <div className="flex items-center gap-4 mb-4">
-        <Link 
-          to="/expenses" 
-          className="text-blue-500 hover:underline"
-        >
+        <Link to="/expenses" className="text-blue-500 hover:underline">
           ← Back to Expenses
         </Link>
         <h2 className="text-2xl font-semibold">🧾 Expense Details</h2>
       </div>
+
       <div className="bg-white shadow rounded p-6 space-y-4">
-        <p><strong>Description:</strong> {expense.description}</p>
-        <p><strong>Amount:</strong> ₹{expense.amount}</p>
-        <p><strong>Category:</strong> {expense.category}</p>
-        <p><strong>Paid By:</strong> {expense.paidBy?.name}</p>
+        <p>
+          <strong>Description:</strong> {expense.description}
+        </p>
+        <p>
+          <strong>Amount:</strong> ₹{expense.amount}
+        </p>
+        <p>
+          <strong>Category:</strong> {expense.category}
+        </p>
+        <p>
+          <strong>Paid By:</strong>{" "}
+          {expense.paidBy?.name || expense.paidBy || "N/A"}
+        </p>
 
         <div>
           <strong>Split Between:</strong>
           <ul className="list-disc ml-6">
-            {expense.splitBetween.map((u) => (
-              <li key={u._id}>{u.name}</li>
-            ))}
+            {expense.splitBetween && expense.splitBetween.length > 0 ? (
+              expense.splitBetween.map((u, i) => (
+                <li key={i}>{u.name || u}</li>
+              ))
+            ) : (
+              <li>No users found</li>
+            )}
           </ul>
         </div>
 
-        {expense.splitType === "custom" && (
+        {expense.splitType === "custom" && expense.customSplit?.length > 0 && (
           <div>
             <strong>Custom Split:</strong>
             <ul className="list-disc ml-6">
@@ -93,7 +106,12 @@ const ExpenseDetails = () => {
         <p>
           <strong>Status:</strong>{" "}
           {expense.isSettled ? (
-            <span className="text-green-600">✅ Settled on {new Date(expense.settledOn).toLocaleDateString()}</span>
+            <span className="text-green-600">
+              ✅ Settled on{" "}
+              {expense.settledOn
+                ? new Date(expense.settledOn).toLocaleDateString()
+                : "—"}
+            </span>
           ) : (
             <span className="text-red-600">❌ Unsettled</span>
           )}
@@ -140,11 +158,10 @@ const ExpenseDetails = () => {
           </button>
           <button
             onClick={() => navigate(`/expenses/${id}/edit`)}
-            className="bg-yellow-500 text-white px-4 py-2 rounded"
+            className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
           >
             ✏️ Edit
           </button>
-
         </div>
       </div>
     </div>

@@ -7,6 +7,8 @@ import userRoutes from './routes/user.routes.js';
 import houseRoutes from './routes/house.routes.js';
 import expenseRoutes from './routes/expense.routes.js';
 import uploadRoutes from './routes/upload.routes.js';
+import paymentRoutes from './routes/payment.routes.js';
+
 
 dotenv.config();
 
@@ -15,9 +17,16 @@ const PORT = process.env.PORT || 4000;
 
 // Simple CORS configuration
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:5174'],
+  origin: ['http://localhost:5173'],
   credentials: true
 }));
+
+app.use((req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  next();
+});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -57,6 +66,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/houses', houseRoutes);
 app.use('/api/expenses', expenseRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/payment', paymentRoutes);
 
 connectDB().then(() => {
   app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

@@ -12,6 +12,13 @@ const expenseSchema = new mongoose.Schema({
   receipt: { type: String },
   isSettled: { type: Boolean, default: false },
   settledOn: { type: Date },
+  settledBy: [
+  {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+  },
+],
+
 }, { timestamps: true });
 
 export default mongoose.model('Expense', expenseSchema);

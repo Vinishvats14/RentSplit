@@ -103,28 +103,27 @@ export const deleteHouse = async (req, res) => {
 // @access  Private
 export const joinHouse = async (req, res) => {
   try {
-    const house = await House.findById(req.params.id);
-    
-    if (!house) {
-      return res.status(404).json({ message: 'House not found' });
-    }
-    
-    // Check if user is already a member
-    if (house.members.includes(req.user.id)) {
-      return res.status(400).json({ message: 'Already a member' });
-    }
-    
-    house.members.push(req.user.id);
+    const { inviteCode } = req.body;
+    const house = await House.findOne({ inviteCode });
+
+    if (!house) return res.status(404).json({ message: "Invalid invite code" });
+
+    if (house.members.includes(req.user._id))
+      return res.status(400).json({ message: "Already a member" });
+
+    house.members.push(req.user._id);
     await house.save();
-    
-    await house.populate('owner', 'name email');
-    await house.populate('members', 'name email');
-    
-    res.json(house);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
+
+    const populated = await House.findById(house._id)
+      .populate('owner', 'name email')
+      .populate('members', 'name email');
+
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };
+
 
 // @desc    Leave house
 // @route   POST /api/houses/:id/leave

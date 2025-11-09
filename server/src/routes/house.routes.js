@@ -25,7 +25,7 @@ router.route('/:id')
   .put(updateHouse)
   .delete(deleteHouse);
 
-router.route('/:id/join')
+router.route('/join')
   .post(joinHouse);
 
 router.route('/:id/leave')

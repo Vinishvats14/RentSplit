@@ -1,45 +1,46 @@
-import express from 'express';
-import { 
-  createExpense, 
-  getExpensesByHouse, 
-  getExpenseById,   // correct name in your controller
-  updateExpense, 
+import express from "express";
+import upload from "../middlewares/uploadMiddleware.js";
+import { protect } from "../middlewares/authMiddleware.js";
+import {
+  createExpense,
+  getExpensesByHouse,
+  getExpenseById,
+  updateExpense,
+  deleteExpense,
   getRecentExpenses,
   getMonthlySummary,
   getBalanceSheet,
-  deleteExpense,
-  settleExpense
-} from '../controllers/expense.controller.js';
-import { protect } from '../middlewares/authMiddleware.js';
+  settleExpense,
+} from "../controllers/expense.controller.js";
 
 const router = express.Router();
 
-// All routes are protected
+// 🔒 Protect all routes
 router.use(protect);
 
-// Get all expenses for a house
-router.get('/house/:houseId', getExpensesByHouse);
+// ➕ Create new expense
+router.post("/", upload.single("receipt"), createExpense);
 
-// Create a new expense
-router.post('/', createExpense);
+// 🏠 Get all expenses for a house
+router.get("/house/:houseId", getExpensesByHouse);
 
-// Get, update, or delete single expense by ID
+// 📊 Get recent expenses
+router.get("/house/:houseId/recent", getRecentExpenses);
+
+// 📈 Monthly summary
+router.get("/house/:houseId/monthly-summary", getMonthlySummary);
+
+// 💰 Balance sheet for a house
+router.get("/house/:houseId/balance-sheet", getBalanceSheet);
+
+// 🧾 Get, update, or delete one expense
 router
-  .route('/:id')
+  .route("/:id")
   .get(getExpenseById)
-  .put(updateExpense)
+  .put(upload.single("receipt"), updateExpense)
   .delete(deleteExpense);
 
-// Settle an expense
-router.put('/:id/settle', settleExpense);
-
-// Get recent expenses for a house
-router.get('/house/:houseId/recent', getRecentExpenses);
-
-// Get monthly summary of expenses for a house
-router.get('/house/:houseId/monthly-summary', getMonthlySummary);
-
-// Get balance sheet for a house
-router.get('/house/:houseId/balance-sheet', getBalanceSheet);
+// ✅ Settle expense (fixed version)
+router.put("/:expenseId/settle", settleExpense);
 
 export default router;

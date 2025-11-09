@@ -1,13 +1,20 @@
+// src/components/Layout.jsx
+import React from "react";
+import Sidebar from "./Sidebar";
 import { Outlet } from "react-router-dom";
-import Navbar from "./Navbar";
 
-export default function Layout() {
+const Layout = () => {
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
-      <main className="flex-1 p-6 max-w-5xl mx-auto w-full">
+    <div className="flex">
+      {/* Sidebar fixed on left */}
+      <Sidebar />
+
+      {/* Page content area */}
+      <div className="ml-64 w-full min-h-screen bg-gray-50 p-6">
         <Outlet />
-      </main>
+      </div>
     </div>
   );
-}
+};
+
+export default Layout;

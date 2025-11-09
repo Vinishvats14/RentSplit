@@ -1,8 +1,7 @@
-// controllers/expenseController.js
 import Expense from "../models/Expense.js";
 import { uploadOnCloudinary } from "../config/cloudinary.js";
 
-// Create a new expense
+// 🧾 Create expense
 export const createExpense = async (req, res) => {
   try {
     const {
@@ -13,14 +12,29 @@ export const createExpense = async (req, res) => {
       paidBy,
       splitBetween,
       splitType,
-      customSplit
+      customSplit,
     } = req.body;
+
     let receiptUrl = null;
     if (req.file) {
       const cloudinaryResponse = await uploadOnCloudinary(req.file.path);
       receiptUrl = cloudinaryResponse?.secure_url || null;
     }
-    
+
+    // ✅ Validate custom split
+    if (splitType === "custom" && Array.isArray(customSplit)) {
+      const totalCustomSplit = customSplit.reduce(
+        (sum, s) => sum + Number(s.amount || 0),
+        0
+      );
+      if (totalCustomSplit !== Number(amount)) {
+        return res.status(400).json({
+          success: false,
+          message: `Custom split total (${totalCustomSplit}) must equal expense amount (${amount})`,
+        });
+      }
+    }
+
     const expense = new Expense({
       description,
       amount,
@@ -32,17 +46,6 @@ export const createExpense = async (req, res) => {
       customSplit,
       receipt: receiptUrl,
     });
-    if (splitType === "custom") {
-  // Calculate total custom split amount
-  const totalCustomSplit = customSplit.reduce((sum, s) => sum + Number(s.amount || 0), 0);
-
-  if (totalCustomSplit !== amount) {
-    return res.status(400).json({
-      success: false,
-      message: `Custom split total (${totalCustomSplit}) must equal expense amount (${amount})`,
-    });
-  }
-}
 
     await expense.save();
     res.status(201).json({ success: true, data: expense });
@@ -52,65 +55,14 @@ export const createExpense = async (req, res) => {
   }
 };
 
-// Get all expenses for a house
+// 📋 Get all expenses for a house
 export const getExpensesByHouse = async (req, res) => {
   try {
     const { houseId } = req.params;
-    const expenses = await Expense.find({ house: houseId })        //
-// _id (houseId)	name
-// h1	House       A
-// h2	House       B
-// And your Expense collection:
-
-// _id	description	house (FK)
-// e1	Rent	    h1
-// e2	Internet	h1
-// e3	Groceries	h2
-// If you do:
-
-// Expense.find({ house: "h1" });
-// ➡️ You’ll get:
-
-// Rent (e1)
-// Internet (e2)
-// Because both are linked to House A (h1).
-// 👥 Same House, Multiple People?
-
-// Yes, many users can be part of the same house, and many expenses can be logged under that house.
-
-// That's exactly why you're using:
-
-// paidBy: ObjectId (ref: User)
-// splitBetween: [ObjectId (ref: User)]
-// populate() is a Mongoose method used to replace the referenced ObjectId with actual document data from another collection.
-
-// 🔧 Example from your code:
-// You have this schema field in your Expense model:
-
-// paidBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
-// When you query the Expense model normally:
-
-// const expenses = await Expense.find({ house: houseId });
-// You’ll get this:
-
-// {
-//   "paidBy": "64fc91be73b96fd71b25e3b0" // just the user ID
-// }
-// But if you use .populate("paidBy", "name email"):
-
-// const expenses = await Expense.find({ house: houseId })
-//   .populate("paidBy", "name email");
-// You get this instead:
-
-// {
-//   "paidBy": {
-//     "_id": "64fc91be73b96fd71b25e3b0",
-//     "name": "Vinu",
-//     "email": "vinu@example.com"
-//   }
-// }
+    const expenses = await Expense.find({ house: houseId })
       .populate("paidBy", "name email")
       .populate("splitBetween", "name email");
+
     res.status(200).json({ success: true, data: expenses });
   } catch (err) {
     console.error("Error fetching expenses:", err);
@@ -118,16 +70,18 @@ export const getExpensesByHouse = async (req, res) => {
   }
 };
 
-// Get single expense by ID
+// 🔍 Get one expense
 export const getExpenseById = async (req, res) => {
   try {
     const { id } = req.params;
     const expense = await Expense.findById(id)
       .populate("paidBy", "name email")
       .populate("splitBetween", "name email");
+
     if (!expense) {
       return res.status(404).json({ success: false, message: "Expense not found" });
     }
+
     res.status(200).json({ success: true, data: expense });
   } catch (err) {
     console.error("Error fetching expense:", err);
@@ -135,47 +89,35 @@ export const getExpenseById = async (req, res) => {
   }
 };
 
-// Update expense
+// ✏️ Update expense
 export const updateExpense = async (req, res) => {
   try {
-    const { id } = req.params;
-    const updates = req.body;
+    const expense = await Expense.findById(req.params.id);
+    if (!expense) return res.status(404).json({ message: "Expense not found" });
 
-    // If receipt file is updated
+    let receiptUrl = expense.receipt;
     if (req.file) {
-      const cloudinaryResponse = await uploadOnCloudinary(req.file.path);
-      if (cloudinaryResponse?.secure_url) {
-        updates.receipt = cloudinaryResponse.secure_url;
-      }
+      const result = await uploadOnCloudinary(req.file.path);
+      receiptUrl = result.secure_url;
     }
 
-    const updatedExpense = await Expense.findByIdAndUpdate(id, updates, { new: true });
-    res.status(200).json({ success: true, data: updatedExpense });
-  } catch (err) {
-    console.error("Error updating expense:", err);
-    res.status(500).json({ success: false, message: "Internal Server Error" });
-  }
-};
-// controllers/expenseController.js
-// Get recent expenses for a house
+    expense.description = req.body.description || expense.description;
+    expense.amount = req.body.amount || expense.amount;
+    expense.category = req.body.category || expense.category;
+    expense.splitType = req.body.splitType || expense.splitType;
+    expense.paidBy = req.body.paidBy || expense.paidBy;
+    expense.receipt = receiptUrl;
 
-export const getRecentExpenses = async (req, res) => {
-  const { houseId } = req.params;
+    await expense.save();
 
-  try {
-    const recentExpenses = await Expense.find({ house: houseId })
-      .sort({ date: -1 })         // Latest first
-      .limit(10)                  // Last 10 expenses
-      .populate("paidBy", "name") // Optional: get payer's name
-      .populate("splitBetween", "name"); // Optional: get split users' names
-
-    res.json({ recentExpenses });
+    res.json({ success: true, message: "Expense updated successfully", expense });
   } catch (error) {
-    res.status(500).json({ message: "Unable to fetch recent expenses" });
+    console.error("Error updating expense:", error);
+    res.status(500).json({ message: "Server error while updating expense" });
   }
 };
 
-// Delete expense
+// 🗑️ Delete expense
 export const deleteExpense = async (req, res) => {
   try {
     const { id } = req.params;
@@ -186,72 +128,119 @@ export const deleteExpense = async (req, res) => {
     res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
-// Get monthly summary of expenses for a house
+
+// 🕒 Get recent expenses
+export const getRecentExpenses = async (req, res) => {
+  const { houseId } = req.params;
+  try {
+    const recentExpenses = await Expense.find({ house: houseId })
+      .sort({ date: -1 })
+      .limit(10)
+      .populate("paidBy", "name")
+      .populate("splitBetween", "name");
+    res.json({ success: true, recentExpenses });
+  } catch (error) {
+    res.status(500).json({ message: "Unable to fetch recent expenses" });
+  }
+};
+
+// 📅 Monthly summary
 export const getMonthlySummary = async (req, res) => {
   const { houseId } = req.params;
   const currentYear = new Date().getFullYear();
-
   try {
-    const expenses = await Expense.find({ house: houseId }); // ✅ Correct field
-
+    const expenses = await Expense.find({ house: houseId });
     const summary = Array(12).fill(0);
-
     expenses.forEach((exp) => {
-      const month = new Date(exp.createdAt).getMonth(); // ✅ Use createdAt
+      const month = new Date(exp.createdAt).getMonth();
       if (new Date(exp.createdAt).getFullYear() === currentYear) {
         summary[month] += exp.amount;
       }
     });
-
     res.json({ success: true, summary });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Error generating summary' });
+    res.status(500).json({ message: "Error generating summary" });
   }
 };
 
-// Get balance sheet for a house
+// 💵 Balance sheet
 export const getBalanceSheet = async (req, res) => {
   const { houseId } = req.params;
   const userId = req.user._id.toString();
-
   try {
-    const expenses = await Expense.find({ house: houseId }).populate("splitBetween");
+    const expenses = await Expense.find({ house: houseId })
+      .populate("splitBetween", "name _id")
+      .populate("paidBy", "name _id")
+      .populate("customSplit.user", "name _id");
 
-    let youOwe = 0;
-    let othersOwe = 0;
+    let youOwe = 0,
+      othersOwe = 0,
+      youOweList = [],
+      othersOweYouList = [];
 
     for (let exp of expenses) {
       const total = exp.amount;
-      const paidBy = exp.paidBy.toString();
+      const paidBy = exp.paidBy?._id?.toString();
+      const payerName = exp.paidBy?.name || "Unknown";
 
-       // ✅ Equal split logic
       if (exp.splitType === "equal") {
         const participants = exp.splitBetween || [];
         const share = total / (participants.length || 1);
 
-        if (participants.some(u => u._id.toString() === userId)) {
-          if (paidBy !== userId) {
-            // You owe the payer your share
+        for (let user of participants) {
+          const uId = user._id.toString();
+          const uName = user.name;
+
+          if (uId === userId && paidBy !== userId) {
             youOwe += share;
-          } else {
-            // Others owe you their share (exclude yourself)
-            othersOwe += share * (participants.length - 1);
+            youOweList.push({
+              from: req.user.name,
+              to: payerName,
+              amount: share.toFixed(2),
+              paidTo: exp.paidBy?._id,
+              expenseId: exp._id,
+            });
+          }
+
+          if (paidBy === userId && uId !== userId) {
+            othersOwe += share;
+            othersOweYouList.push({
+              from: uName,
+              to: req.user.name,
+              amount: share.toFixed(2),
+              paidTo: req.user._id,
+              expenseId: exp._id,
+            });
           }
         }
       }
 
-      // ✅ Custom split logic
       if (exp.splitType === "custom" && Array.isArray(exp.customSplit)) {
         for (let s of exp.customSplit) {
           const shareAmount = s.amount;
           const u = s.user._id ? s.user._id.toString() : s.user.toString();
+          const uName = s.user.name || "Unknown";
 
           if (u === userId && paidBy !== userId) {
             youOwe += shareAmount;
+            youOweList.push({
+              from: req.user.name,
+              to: payerName,
+              amount: shareAmount.toFixed(2),
+              paidTo: exp.paidBy?._id,
+              expenseId: exp._id,
+            });
           }
+
           if (paidBy === userId && u !== userId) {
             othersOwe += shareAmount;
+            othersOweYouList.push({
+              from: uName,
+              to: req.user.name,
+              amount: shareAmount.toFixed(2),
+              paidTo: req.user._id,
+              expenseId: exp._id,
+            });
           }
         }
       }
@@ -261,6 +250,8 @@ export const getBalanceSheet = async (req, res) => {
       totalYouOwe: youOwe.toFixed(2),
       totalOthersOweYou: othersOwe.toFixed(2),
       netBalance: (othersOwe - youOwe).toFixed(2),
+      youOweList,
+      othersOweYouList,
     });
   } catch (err) {
     console.error("Error calculating balance sheet:", err);
@@ -268,18 +259,29 @@ export const getBalanceSheet = async (req, res) => {
   }
 };
 
-// Mark as settled
+// ✅ Settle expense (Final working version)
 export const settleExpense = async (req, res) => {
   try {
-    const { id } = req.params;
-    const expense = await Expense.findByIdAndUpdate(
-      id,
-      { isSettled: true, settledOn: new Date() },
-      { new: true }
-    );
-    res.status(200).json({ success: true, data: expense });
-  } catch (err) {
-    console.error("Error settling expense:", err);
-    res.status(500).json({ success: false, message: "Internal Server Error" });
+    const { expenseId } = req.params;
+    const userId = req.user._id; // current logged in user
+
+    const expense = await Expense.findById(expenseId);
+    if (!expense) {
+      return res.status(404).json({ message: "Expense not found" });
+    }
+
+    // ✅ Mark expense as settled
+    expense.settled = true;
+    expense.settledBy = userId;
+    await expense.save();
+
+    res.json({
+      success: true,
+      message: "Expense settled successfully",
+      expense,
+    });
+  } catch (error) {
+    console.error("❌ Error settling expense:", error);
+    res.status(500).json({ message: "Server error while settling expense" });
   }
 };
