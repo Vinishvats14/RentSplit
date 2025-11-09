@@ -15,10 +15,9 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-// Simple CORS configuration
 // ...existing code...
 const allowedOrigins = [
-  process.env.CLIENT_URL,
+  (process.env.CLIENT_URL || "").replace(/(^"|"$)/g, ""),
   "http://localhost:5173",
   "http://127.0.0.1:5173",
 ];
@@ -26,18 +25,30 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (eg: server-to-server, mobile apps, curl)
+      // allow non-browser requests (curl, server-to-server)
       if (!origin) return callback(null, true);
 
-      if (allowedOrigins.includes(origin)) {
+      // normalize origin (strip accidental quotes)
+      const normalized = origin.replace(/(^"|"$)/g, "");
+
+      // allow explicit whitelist
+      if (allowedOrigins.includes(normalized)) return callback(null, true);
+
+      // allow any vercel preview / production domain under vercel.app
+      if (normalized.endsWith(".vercel.app") || normalized.endsWith(".vercel.app/")) {
         return callback(null, true);
       }
 
-      console.warn("Blocked CORS origin:", origin);
+      // allow localhost patterns
+      if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(normalized)) {
+        return callback(null, true);
+      }
+
+      console.warn("Blocked CORS origin:", normalized);
       return callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
