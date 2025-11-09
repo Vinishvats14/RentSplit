@@ -16,14 +16,32 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 
 // Simple CORS configuration
+// ...existing code...
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+];
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
-    credentials: true, // allow frontend to send cookies
+    origin: (origin, callback) => {
+      // Allow requests with no origin (eg: server-to-server, mobile apps, curl)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      console.warn("Blocked CORS origin:", origin);
+      return callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+// ...existing code...
 
 app.use(session({
   secret: process.env.SESSION_SECRET,
