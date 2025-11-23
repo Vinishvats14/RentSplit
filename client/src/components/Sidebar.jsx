@@ -8,8 +8,8 @@ import { AuthContext } from "../context/AuthContext";
 const Sidebar = () => {
   const { user, logout } = useContext(AuthContext);
 
-  const youOwe = user?.youOwe || 1333; // fallback values
-  const owedToYou = user?.owedToYou || 156;
+  const youOwe = user?.youOwe || 0; // fallback values
+  const owedToYou = user?.owedToYou || 0;
 
   return (
     <div className="fixed top-0 left-0 h-screen w-64 bg-white shadow-lg flex flex-col justify-between">

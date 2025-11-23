@@ -1,10 +1,10 @@
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useState, useContext } from "react";
-import { createOrder, verifyPayment, settleExpense } from "../api";
+import { createOrder, verifyPayment, settleExpense, getBalanceSheet } from "../api";
 import { AuthContext } from "../context/AuthContext";
 
 export default function Payment() {
-  const { user } = useContext(AuthContext);
+  const { user, setUser } = useContext(AuthContext);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -16,9 +16,9 @@ export default function Payment() {
 
   const [loading, setLoading] = useState(false);
 
-  // 🧩 Step 1 — Load Razorpay Script
   const loadRazorpayScript = () =>
     new Promise((resolve) => {
+      if (window.Razorpay) return resolve(true);
       const script = document.createElement("script");
       script.src = "https://checkout.razorpay.com/v1/checkout.js";
       script.onload = () => resolve(true);
@@ -26,8 +26,12 @@ export default function Payment() {
       document.body.appendChild(script);
     });
 
-  // 💳 Step 2 — Start Payment
   const startPayment = async () => {
+    if (!amount || Number(amount) <= 0) {
+      alert("Invalid amount");
+      return;
+    }
+
     setLoading(true);
     const scriptLoaded = await loadRazorpayScript();
     if (!scriptLoaded) {
@@ -37,15 +41,18 @@ export default function Payment() {
     }
 
     try {
-      // 🧾 Create Order
       const orderData = await createOrder({
         amount,
-        paidBy: user._id,
+        paidBy: user?._id,
         paidTo,
         expenseId,
       });
 
-      const { order, paymentId: dbPaymentId } = orderData;
+      const { order, paymentId: dbPaymentId } = orderData || {};
+
+      if (!order || !order.id) {
+        throw new Error("Invalid order returned from server");
+      }
 
       const options = {
         key: import.meta.env.VITE_RAZORPAY_KEY_ID,
@@ -54,8 +61,6 @@ export default function Payment() {
         name: "RentSplit",
         description: `Payment to ${to}`,
         order_id: order.id,
-
-        // 🧠 Razorpay Callback
         handler: async function (response) {
           try {
             const verificationRes = await verifyPayment({
@@ -65,27 +70,45 @@ export default function Payment() {
               dbPaymentId,
             });
 
-            if (!verificationRes.success) {
+            if (!verificationRes?.success) {
               alert("❌ Payment verification failed!");
               return;
             }
 
-            // ✅ Mark Expense as Settled
             if (expenseId) {
               await settleExpense(expenseId);
             }
 
-            // 🚀 Redirect to dashboard & force fresh data load
+            // Refresh balance and update AuthContext only if totals changed
+            try {
+              if (user?.house?._id) {
+                const balanceRes = await getBalanceSheet(user.house._id);
+                const totalYouOwe = Number(balanceRes?.totalYouOwe ?? balanceRes?.total_you_owe ?? 0);
+                const totalOthersOweYou = Number(balanceRes?.totalOthersOweYou ?? balanceRes?.total_others_owe_you ?? 0);
+
+                if (typeof setUser === "function") {
+                  setUser((prev = {}) => {
+                    if (prev?.youOwe === totalYouOwe && prev?.owedToYou === totalOthersOweYou) return prev;
+                    return { ...prev, youOwe: totalYouOwe, owedToYou: totalOthersOweYou };
+                  });
+                } else {
+                  localStorage.setItem("youOwe", String(totalYouOwe));
+                  localStorage.setItem("owedToYou", String(totalOthersOweYou));
+                }
+              }
+            } catch (balanceErr) {
+              console.error("Failed to refresh balance after payment:", balanceErr);
+            }
+
             navigate("/dashboard?success=true", { replace: true });
           } catch (err) {
             console.error("Settlement error:", err);
             alert("Payment done but failed to mark as settled. Try refreshing.");
           }
         },
-
         prefill: {
-          name: user.name,
-          email: user.email,
+          name: user?.name,
+          email: user?.email,
         },
         theme: { color: "#4f46e5" },
       };
@@ -100,7 +123,6 @@ export default function Payment() {
     }
   };
 
-  // 🧭 UI
   return (
     <div className="p-8 max-w-lg mx-auto">
       <h1 className="text-3xl font-bold mb-4">💳 Payment</h1>

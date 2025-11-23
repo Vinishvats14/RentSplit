@@ -73,15 +73,15 @@ export const deleteExpense = async (id) => {
   return res.data;
 };
 export const getRecentExpenses = async (houseId) => {
-  const res = await axios.get(`${API_BASE}/expenses/house/${houseId}/recent`);
+  const res = await axios.get(`${API_BASE}/expenses/house/${houseId}/recent?t=${new Date().getTime()}`);
   return res.data;
 };
 export const getMonthlySummary = async (houseId) => {
-  const res = await axios.get(`${API_BASE}/expenses/house/${houseId}/monthly-summary`);
+  const res = await axios.get(`${API_BASE}/expenses/house/${houseId}/monthly-summary?t=${new Date().getTime()}`);
   return res.data;
 };
 export const getBalanceSheet = async (houseId) => {
-  const res = await axios.get(`${API_BASE}/expenses/house/${houseId}/balance-sheet`);
+  const res = await axios.get(`${API_BASE}/expenses/house/${houseId}/balance-sheet?t=${new Date().getTime()}`);
   return res.data;
 };
 

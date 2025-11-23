@@ -15,9 +15,7 @@ export const AuthProvider = ({ children }) => {
     try {
       console.log("📡 Calling /users/me...");
       const response = await getProfile();
-      console.log("✅ Profile response:", response);
-
-      // ✅ Backend directly user object bhej raha hai
+        console.log("✅ Profile response:", response);
       setUser(response || null);
     } catch (error) {
       console.error("❌ Failed to fetch profile:", error);
@@ -28,7 +26,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = async () => {
-    await fetchProfile(); // ✅ Fetch user after login
+    await fetchProfile();
   };
 
   const logout = async () => {
@@ -42,7 +40,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, setUser, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

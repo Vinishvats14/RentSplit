@@ -15,6 +15,8 @@ export const createExpense = async (req, res) => {
       customSplit,
     } = req.body;
 
+    console.log("🧾 Creating Expense:", { description, amount, paidBy, splitBetween });
+
     let receiptUrl = null;
     if (req.file) {
       const cloudinaryResponse = await uploadOnCloudinary(req.file.path);
@@ -48,6 +50,7 @@ export const createExpense = async (req, res) => {
     });
 
     await expense.save();
+    console.log("✅ Expense saved:", expense._id);
     res.status(201).json({ success: true, data: expense });
   } catch (err) {
     console.error("Error creating expense:", err);
@@ -60,6 +63,7 @@ export const getExpensesByHouse = async (req, res) => {
   try {
     const { houseId } = req.params;
     const expenses = await Expense.find({ house: houseId })
+      .sort({ createdAt: -1 })
       .populate("paidBy", "name email")
       .populate("splitBetween", "name email");
 
@@ -132,14 +136,17 @@ export const deleteExpense = async (req, res) => {
 // 🕒 Get recent expenses
 export const getRecentExpenses = async (req, res) => {
   const { houseId } = req.params;
+  console.log(`🕒 getRecentExpenses called for houseId: ${houseId}`);
   try {
     const recentExpenses = await Expense.find({ house: houseId })
-      .sort({ date: -1 })
+      .sort({ createdAt: -1 })
       .limit(10)
       .populate("paidBy", "name")
       .populate("splitBetween", "name");
+    console.log(`✅ getRecentExpenses found ${recentExpenses.length} expenses`);
     res.json({ success: true, recentExpenses });
   } catch (error) {
+    console.error("❌ getRecentExpenses error:", error);
     res.status(500).json({ message: "Unable to fetch recent expenses" });
   }
 };
@@ -147,9 +154,11 @@ export const getRecentExpenses = async (req, res) => {
 // 📅 Monthly summary
 export const getMonthlySummary = async (req, res) => {
   const { houseId } = req.params;
+  console.log(`📅 getMonthlySummary called for houseId: ${houseId}`);
   const currentYear = new Date().getFullYear();
   try {
     const expenses = await Expense.find({ house: houseId });
+    console.log(`📅 getMonthlySummary found ${expenses.length} expenses`);
     const summary = Array(12).fill(0);
     expenses.forEach((exp) => {
       const month = new Date(exp.createdAt).getMonth();
@@ -157,8 +166,10 @@ export const getMonthlySummary = async (req, res) => {
         summary[month] += exp.amount;
       }
     });
+    console.log(`✅ getMonthlySummary done`);
     res.json({ success: true, summary });
   } catch (error) {
+    console.error("❌ getMonthlySummary error:", error);
     res.status(500).json({ message: "Error generating summary" });
   }
 };
@@ -167,11 +178,14 @@ export const getMonthlySummary = async (req, res) => {
 export const getBalanceSheet = async (req, res) => {
   const { houseId } = req.params;
   const userId = req.user._id.toString();
+  console.log(`💵 getBalanceSheet called for houseId: ${houseId}, userId: ${userId}`);
   try {
     const expenses = await Expense.find({ house: houseId })
       .populate("splitBetween", "name _id")
       .populate("paidBy", "name _id")
       .populate("customSplit.user", "name _id");
+
+    console.log(`💵 getBalanceSheet found ${expenses.length} expenses`);
 
     let youOwe = 0,
       othersOwe = 0,
@@ -179,18 +193,25 @@ export const getBalanceSheet = async (req, res) => {
       othersOweYouList = [];
 
     for (let exp of expenses) {
+      if (exp.isSettled) continue; // Skip settled expenses
+
       const total = exp.amount;
       const paidBy = exp.paidBy?._id?.toString();
       const payerName = exp.paidBy?.name || "Unknown";
 
       if (exp.splitType === "equal") {
         const participants = exp.splitBetween || [];
+        // If participants is empty, assume it's split between all members? No, we can't assume.
+        // If participants only has 1 person, share is total.
         const share = total / (participants.length || 1);
 
         for (let user of participants) {
-          const uId = user._id.toString();
+          if (!user) continue;
+          const uId = user._id?.toString();
+          if (!uId) continue;
           const uName = user.name;
 
+          // Case 1: I am a participant (uId == userId), but I didn't pay (paidBy != userId).
           if (uId === userId && paidBy !== userId) {
             youOwe += share;
             youOweList.push({
@@ -202,6 +223,7 @@ export const getBalanceSheet = async (req, res) => {
             });
           }
 
+          // Case 2: I paid (paidBy == userId), and this participant is someone else (uId != userId).
           if (paidBy === userId && uId !== userId) {
             othersOwe += share;
             othersOweYouList.push({
@@ -217,6 +239,7 @@ export const getBalanceSheet = async (req, res) => {
 
       if (exp.splitType === "custom" && Array.isArray(exp.customSplit)) {
         for (let s of exp.customSplit) {
+          if (!s.user) continue;
           const shareAmount = s.amount;
           const u = s.user._id ? s.user._id.toString() : s.user.toString();
           const uName = s.user.name || "Unknown";
@@ -246,6 +269,7 @@ export const getBalanceSheet = async (req, res) => {
       }
     }
 
+    console.log(`✅ getBalanceSheet done. You Owe: ${youOwe}, Others Owe: ${othersOwe}`);
     res.status(200).json({
       totalYouOwe: youOwe.toFixed(2),
       totalOthersOweYou: othersOwe.toFixed(2),
@@ -254,7 +278,7 @@ export const getBalanceSheet = async (req, res) => {
       othersOweYouList,
     });
   } catch (err) {
-    console.error("Error calculating balance sheet:", err);
+    console.error("❌ Error calculating balance sheet:", err);
     res.status(500).json({ message: "Error calculating balances" });
   }
 };
@@ -271,8 +295,9 @@ export const settleExpense = async (req, res) => {
     }
 
     // ✅ Mark expense as settled
-    expense.settled = true;
+    expense.isSettled = true;
     expense.settledBy = userId;
+    expense.settledOn = new Date();
     await expense.save();
 
     res.json({
