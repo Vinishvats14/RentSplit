@@ -15,6 +15,9 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 4000;
 
+// ✅ Trust proxy is required for cookies to work on Render/Vercel (behind load balancer)
+app.set("trust proxy", 1);
+
 // ...existing code...
 const allowedOrigins = [
   (process.env.CLIENT_URL || "").replace(/(^"|"$)/g, ""),
