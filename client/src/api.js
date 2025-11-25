@@ -3,17 +3,32 @@ import { API_BASE } from "./config";
 
 axios.defaults.withCredentials = true; // ✅ Always send cookies
 
+// ✅ Add interceptor to attach token from localStorage
+axios.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 // ========================== 🔑 AUTH APIs ==========================
 
 // Register user
 export const registerUser = async (data) => {
   const res = await axios.post(`${API_BASE}/users/register`, data);
+  if (res.data.token) {
+    localStorage.setItem("token", res.data.token);
+  }
   return res.data;
 };
 
 // Login user (sets cookie in backend)
 export const loginUser = async (data) => {
   const res = await axios.post(`${API_BASE}/users/login`, data);
+  if (res.data.token) {
+    localStorage.setItem("token", res.data.token);
+  }
   return res.data;
 };
 
@@ -25,6 +40,7 @@ export const getProfile = async () => {
 
 // Logout user (clears cookie in backend)
 export const logoutUser = async () => {
+  localStorage.removeItem("token");
   const res = await axios.post(`${API_BASE}/users/logout`);
   return res.data;
 };

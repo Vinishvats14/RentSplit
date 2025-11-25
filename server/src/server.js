@@ -81,6 +81,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+// Handle favicon.ico 404
+app.get('/favicon.ico', (req, res) => res.status(204).end());
+
 // Root route
 app.get('/', (req, res) => {
   res.json({
